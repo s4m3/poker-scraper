@@ -24,55 +24,44 @@ async function parseLogs(e) {
 
 
 async function clickButtonOnPageAndWait(page, url) {
-  let isPending = true;
-  const parseWebsocketFrame = (response) => {
-    let payload;
-    if (response &&
-      response.response &&
-      response.response.payloadData.includes('key') &&
-      response.response.payloadData.includes('rounds')
-    ) {
-      try {
-        payload = response.response.payloadData.toString().replace(/^\d+/, '');
-        const games = JSON.parse(payload);
-        games.forEach(game => {
-          saveGame(game.key, game);
-          isPending = false;
-        })
-      } catch (e) {
-        console.error(`Error while parsing payload ${response.response.payloadData}`)
-        console.error(payload);
+  await new Promise(async function (resolve) {
+    const parseWebsocketFrame = (response) => {
+      let payload;
+      if (response &&
+        response.response &&
+        response.response.payloadData.includes('key') &&
+        response.response.payloadData.includes('rounds')
+      ) {
+        try {
+          payload = response.response.payloadData.toString().replace(/^\d+/, '');
+          const games = JSON.parse(payload);
+          games.forEach(game => {
+            saveGame(game.key, game);
+            resolve();
+          })
+        } catch (e) {
+          console.error(`Error while parsing payload ${response.response.payloadData}`)
+          console.error(payload);
+        }
       }
     }
-  }
 
-  await page.goto(url);
-  const cdp = await page.target().createCDPSession();
-  await cdp.send('Network.enable');
-  await cdp.send('Page.enable');
-  cdp.on('Network.webSocketFrameReceived', parseWebsocketFrame);
+    await page.goto(url);
+    const cdp = await page.target().createCDPSession();
+    await cdp.send('Network.enable');
+    await cdp.send('Page.enable');
+    cdp.on('Network.webSocketFrameReceived', parseWebsocketFrame);
 
-  await page.evaluate(async () => {
-    const buttonElements = document.getElementsByClassName(
-      "md-icon-button md-fab md-accent md-button md-dance-theme md-ink-ripple");
-    const btn = buttonElements[0];
-    if (!btn) {
-      throw `No button found on ${url}`;
-    }
-    btn.click();
-  });
-
-  // wait for logs
-  await new Promise(function (resolve) {
-    const waitForIt = () => {
-      if (!isPending) {
-        resolve();
+    await page.evaluate(async () => {
+      const buttonElements = document.getElementsByClassName(
+        "md-icon-button md-fab md-accent md-button md-dance-theme md-ink-ripple");
+      const btn = buttonElements[0];
+      if (!btn) {
+        throw `No button found on ${url}`;
       }
-      setTimeout(waitForIt, 300)
-    }
-    waitForIt();
+      btn.click();
+    });
   });
-
 }
 
 
