@@ -90,7 +90,7 @@ async function getUrls() {
 }
 
 const withBrowser = async (fn) => {
-  const browser = await puppeteer.launch({/* ... */ });
+  const browser = await puppeteer.launch();
   try {
     return await fn(browser);
   } finally {
@@ -119,12 +119,11 @@ async function run() {
         console.log(`Parsing ${idx}/${amount}... URL:${url}`)
         await clickButtonOnPageAndWait(page, url);
       });
-    }, { concurrency: 15 });
+    }, { concurrency: 10 });
   });
 
   console.log('PARSING DONE. Writing output to games.json');
   fs.writeFileSync('games.json', JSON.stringify(uniqueGames), { flag: 'w' });
-  return;
 }
 
 run();
