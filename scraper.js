@@ -9,9 +9,7 @@ const saveGame = (key, game) => {
   if (!key || uniqueGames[key]) {
     return;
   }
-
   console.log(`Saving game with key ${key}`);
-
   uniqueGames[key] = game;
 }
 
@@ -24,23 +22,36 @@ async function parseLogs(e) {
   }
 }
 
-const parseWebsocketFrame = response => {
-  let payload;
-  if (response && response.response && response.response.payloadData.includes('key')) {
-    try {
-      payload = response.response.payloadData.toString().replace(/^\d+/, '');
-      const games = JSON.parse(payload);
-      games.forEach(game => {
-        saveGame(game.key, game);
-      })
-    } catch (e) {
-      console.error(`Error while parsing payload ${response.response.payloadData}`)
-      console.error(payload);
+
+async function clickButtonOnPageAndWait(page, url) {
+  let isPending = true;
+  const parseWebsocketFrame = (response) => {
+    let payload;
+    if (response &&
+      response.response &&
+      response.response.payloadData.includes('key') &&
+      response.response.payloadData.includes('rounds')
+    ) {
+      try {
+        payload = response.response.payloadData.toString().replace(/^\d+/, '');
+        const games = JSON.parse(payload);
+        games.forEach(game => {
+          saveGame(game.key, game);
+          isPending = false;
+        })
+      } catch (e) {
+        console.error(`Error while parsing payload ${response.response.payloadData}`)
+        console.error(payload);
+      }
     }
   }
-}
 
-async function clickButtonOnPageAndWait(page) {
+  await page.goto(url);
+  const cdp = await page.target().createCDPSession();
+  await cdp.send('Network.enable');
+  await cdp.send('Page.enable');
+  cdp.on('Network.webSocketFrameReceived', parseWebsocketFrame);
+
   await page.evaluate(async () => {
     const buttonElements = document.getElementsByClassName(
       "md-icon-button md-fab md-accent md-button md-dance-theme md-ink-ripple");
@@ -49,13 +60,19 @@ async function clickButtonOnPageAndWait(page) {
       throw `No button found on ${url}`;
     }
     btn.click();
-
-    // wait for logs
-    await new Promise(function (resolve) {
-      setTimeout(resolve, 3000);
-    });
-
   });
+
+  // wait for logs
+  await new Promise(function (resolve) {
+    const waitForIt = () => {
+      if (!isPending) {
+        resolve();
+      }
+      setTimeout(waitForIt, 300)
+    }
+    waitForIt();
+  });
+
 }
 
 
@@ -100,19 +117,14 @@ async function run() {
     return bluebird.map(urls, async (url, idx) => {
       return withPage(browser)(async (page) => {
         console.log(`Parsing ${idx}/${amount}... URL:${url}`)
-        await page.goto(url);
-        const cdp = await page.target().createCDPSession();
-        await cdp.send('Network.enable');
-        await cdp.send('Page.enable');
-        cdp.on('Network.webSocketFrameReceived', parseWebsocketFrame);
-
-        await clickButtonOnPageAndWait(page);
+        await clickButtonOnPageAndWait(page, url);
       });
-    }, { concurrency: 3 });
+    }, { concurrency: 15 });
   });
 
   console.log('PARSING DONE. Writing output to games.json');
   fs.writeFileSync('games.json', JSON.stringify(uniqueGames), { flag: 'w' });
+  return;
 }
 
 run();
