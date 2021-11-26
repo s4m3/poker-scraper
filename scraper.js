@@ -2,7 +2,7 @@ const puppeteer = require('puppeteer');
 const fs = require('fs');
 const fsPromises = require('fs').promises;
 
-uniqueGames = {};
+const uniqueGames = {};
 
 const saveGame = (key, game) => {
   if (!key || uniqueGames[key]) {
