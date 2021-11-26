@@ -2,24 +2,44 @@ const puppeteer = require('puppeteer');
 const fs = require('fs');
 const fsPromises = require('fs').promises;
 
-global.uniqueGames = {};
+uniqueGames = {};
+
+const saveGame = (key, game) => {
+  if (!key || uniqueGames[key]) {
+    return;
+  }
+
+  console.log(`Saving game with key ${key}`);
+
+  uniqueGames[key] = game;
+}
 
 async function parseLogs(e) {
   const args = await Promise.all(e.args().map(a => a.jsonValue()));
   if (args && args.length === 1) {
     const game = args[0];
     const { key } = game;
-    if (!key || global.uniqueGames[key]) {
-      return;
-    }
-
-    console.log(`Found new game with key ${key}`);
-
-    global.uniqueGames[key] = game;
+    saveGame(key, game);
   }
 }
 
-async function readGameFromPage(page) {
+const parseWebsocketFrame = response => {
+  let payload;
+  if (response && response.response && response.response.payloadData.includes('key')) {
+    try {
+      payload = response.response.payloadData.toString().replace(/^\d+/, '');
+      const games = JSON.parse(payload);
+      games.forEach(game => {
+        saveGame(game.key, game);
+      })
+    } catch (e) {
+      console.error(`Error while parsing payload ${response.response.payloadData}`)
+      console.error(payload);
+    }
+  }
+}
+
+async function clickButtonOnPageAndWait(page) {
   await page.evaluate(async () => {
     const buttonElements = document.getElementsByClassName(
       "md-icon-button md-fab md-accent md-button md-dance-theme md-ink-ripple");
@@ -68,40 +88,16 @@ async function run() {
     const cdp = await page.target().createCDPSession();
     await cdp.send('Network.enable');
     await cdp.send('Page.enable');
+    cdp.on('Network.webSocketFrameReceived', parseWebsocketFrame);
 
-    const printResponse = response => {
-      //console.log('response: ', response.response.payloadData);
-
-      // parse
-      let payload;
-      if (response.response.payloadData.includes('key')) {
-        try {
-
-          payload = response.response.payloadData.toString().replace(/^\d+/, '');
-          const parsedJson = JSON.parse(payload);
-        } catch (e) {
-
-          console.error('cannot parse', response.response.payloadData)
-          console.error(payload);
-        }
-      }
-
-
-      //console.log(parsedJson);
-
-    }
-
-    cdp.on('Network.webSocketFrameReceived', printResponse); // Fired when WebSocket message is received.
-
-
-    await readGameFromPage(page);
+    await clickButtonOnPageAndWait(page);
     await page.close();
     idx++;
   }
 
   console.log('PARSING DONE. Writing output to games.json');
   browser.close();
-  fs.writeFileSync('games.json', JSON.stringify(global.uniqueGames), { flag: 'w' });
+  fs.writeFileSync('games.json', JSON.stringify(uniqueGames), { flag: 'w' });
 }
 
 run();
