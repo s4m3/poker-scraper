@@ -21,6 +21,7 @@ async function parseLogs(e) {
 
 async function readGameFromPage (page) {
     await page.evaluate(async () => {
+        console.log('readFromPage');
         const buttonElements = document.getElementsByClassName("md-icon-button md-fab md-accent md-button md-dance-theme md-ink-ripple");
         const btn = buttonElements[0];
         if(!btn) {
@@ -29,6 +30,7 @@ async function readGameFromPage (page) {
         btn.click();
 
         // wait for logs
+        console.log('wait');
         await new Promise(function(resolve) { 
            setTimeout(resolve, 1500);
     	});
@@ -50,6 +52,8 @@ async function getUrls () {
 
 }
 
+// https://advancedweb.hu/how-to-speed-up-puppeteer-scraping-with-parallelization/
+
 async function run () {
 	console.log('####### EXECUTING GAME EXTRACTION #######');
     const browser = await puppeteer.launch();
@@ -57,15 +61,31 @@ async function run () {
     const amount = urls.length;
     console.log(`Found ${amount} urls!`);
 
-    let idx = 1;
-    for(let url of urls) {
-    	console.log(`Parsing ${idx}/${amount}... URL:${url}`)
-    	const page = await browser.newPage();
-        page.on('console', (e) => parseLogs(e));
-		await page.goto(url);
-		await readGameFromPage(page);
-		await page.close();
-		idx++;
+    const extractFromPage = async (browser, url, idx, amount) => {
+        try {
+            console.log(`Parsing ${idx + 1}/${amount}... URL:${url}`)
+            const page = await browser.newPage();
+            console.log('1:', idx);
+            page.on('console', (e) => parseLogs(e));
+            console.log('2:', idx);
+            await page.goto(url);
+            console.log('3:', idx);
+            await readGameFromPage(page);
+            console.log('4:', idx);
+            await page.close();
+            console.log('5:', idx);
+        } catch (e) {
+            console.error('error while extracting', e);
+        }
+        
+    }
+
+    try {
+        const allPromises = await Promise.all(urls.map(async (url, idx) => {
+            await extractFromPage(browser, url, idx, amount);
+        }));
+    } catch (e) {
+        console.error('Error while extracting from pages:', e);
     }
 	
     console.log('PARSING DONE. Writing output to games.json');
