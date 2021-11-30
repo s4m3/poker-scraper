@@ -1,6 +1,7 @@
 const puppeteer = require('puppeteer');
 const fs = require('fs');
 const fsPromises = require('fs').promises;
+const bluebird = require("bluebird");
 
 const uniqueGames = {};
 
@@ -8,9 +9,7 @@ const saveGame = (key, game) => {
   if (!key || uniqueGames[key]) {
     return;
   }
-
   console.log(`Saving game with key ${key}`);
-
   uniqueGames[key] = game;
 }
 
@@ -23,37 +22,45 @@ async function parseLogs(e) {
   }
 }
 
-const parseWebsocketFrame = response => {
-  let payload;
-  if (response && response.response && response.response.payloadData.includes('key')) {
-    try {
-      payload = response.response.payloadData.toString().replace(/^\d+/, '');
-      const games = JSON.parse(payload);
-      games.forEach(game => {
-        saveGame(game.key, game);
-      })
-    } catch (e) {
-      console.error(`Error while parsing payload ${response.response.payloadData}`)
-      console.error(payload);
-    }
-  }
-}
 
-async function clickButtonOnPageAndWait(page) {
-  await page.evaluate(async () => {
-    const buttonElements = document.getElementsByClassName(
-      "md-icon-button md-fab md-accent md-button md-dance-theme md-ink-ripple");
-    const btn = buttonElements[0];
-    if (!btn) {
-      throw `No button found on ${url}`;
+async function clickButtonOnPageAndWait(page, url) {
+  await new Promise(async function (resolve) {
+    const parseWebsocketFrame = (response) => {
+      let payload;
+      if (response &&
+        response.response &&
+        response.response.payloadData.includes('key') &&
+        response.response.payloadData.includes('rounds')
+      ) {
+        try {
+          payload = response.response.payloadData.toString().replace(/^\d+/, '');
+          const games = JSON.parse(payload);
+          games.forEach(game => {
+            saveGame(game.key, game);
+            resolve();
+          })
+        } catch (e) {
+          console.error(`Error while parsing payload ${response.response.payloadData}`)
+          console.error(payload);
+        }
+      }
     }
-    btn.click();
 
-    // wait for logs
-    await new Promise(function (resolve) {
-      setTimeout(resolve, 1500);
+    await page.goto(url);
+    const cdp = await page.target().createCDPSession();
+    await cdp.send('Network.enable');
+    await cdp.send('Page.enable');
+    cdp.on('Network.webSocketFrameReceived', parseWebsocketFrame);
+
+    await page.evaluate(async () => {
+      const buttonElements = document.getElementsByClassName(
+        "md-icon-button md-fab md-accent md-button md-dance-theme md-ink-ripple");
+      const btn = buttonElements[0];
+      if (!btn) {
+        throw `No button found on ${url}`;
+      }
+      btn.click();
     });
-
   });
 }
 
@@ -71,32 +78,40 @@ async function getUrls() {
 
 }
 
+const withBrowser = async (fn) => {
+  const browser = await puppeteer.launch();
+  try {
+    return await fn(browser);
+  } finally {
+    await browser.close();
+  }
+}
+
+const withPage = (browser) => async (fn) => {
+  const page = await browser.newPage();
+  try {
+    return await fn(page);
+  } finally {
+    await page.close();
+  }
+}
+
+
 async function run() {
   console.log('####### EXECUTING GAME EXTRACTION #######');
-  const browser = await puppeteer.launch();
   const urls = await getUrls();
   const amount = urls.length;
   console.log(`Found ${amount} urls!`);
-
-  let idx = 1;
-  for (let url of urls) {
-    console.log(`Parsing ${idx}/${amount}... URL:${url}`)
-    const page = await browser.newPage();
-    // page.on('console', (e) => parseLogs(e));
-    await page.goto(url);
-
-    const cdp = await page.target().createCDPSession();
-    await cdp.send('Network.enable');
-    await cdp.send('Page.enable');
-    cdp.on('Network.webSocketFrameReceived', parseWebsocketFrame);
-
-    await clickButtonOnPageAndWait(page);
-    await page.close();
-    idx++;
-  }
+  const results = await withBrowser(async (browser) => {
+    return bluebird.map(urls, async (url, idx) => {
+      return withPage(browser)(async (page) => {
+        console.log(`Parsing ${idx}/${amount}... URL:${url}`)
+        await clickButtonOnPageAndWait(page, url);
+      });
+    }, { concurrency: 10 });
+  });
 
   console.log('PARSING DONE. Writing output to games.json');
-  browser.close();
   fs.writeFileSync('games.json', JSON.stringify(uniqueGames), { flag: 'w' });
 }
 
