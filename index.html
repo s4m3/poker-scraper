@@ -18,17 +18,31 @@
     }
   </style>
 
-  <script>
+  <script defer>
     var host = location.origin.replace(/^http/, 'ws')
     var ws = new WebSocket(host);
+    ws.binaryType = 'arraybuffer';
+    var dec = new TextDecoder()
+    window.onload = function () {
+      var btnEl = document.getElementById('btn');
+      var inputEl = document.getElementById('input');
 
-    ws.onopen = event => {
-      ws.send('do you hear me?')
-    };
+      btnEl.onclick = event => {
+        console.log(inputEl.value, typeof inputEl.value);
+        ws.send(inputEl.value);
+      }
+    }
+
+    // ws.onopen = event => {
+    //   ws.send('do you hear me?')
+    // };
 
     ws.onmessage = function (event) {
       var li = document.createElement('li');
-      li.innerHTML = JSON.parse(event.data);
+      console.log('event', event);
+      var received = dec.decode(event.data);
+      console.log('received data', received);
+      li.innerHTML = received;
       document.querySelector('#pings').appendChild(li);
     };
   </script>
@@ -36,5 +50,9 @@
 <body>
 <h1>Pings</h1>
 <ul id='pings'></ul>
+<label>
+  <textarea id="input" name="Text1" cols="40" rows="5"></textarea>
+</label>
+<button id="btn">Click</button>
 </body>
 </html>
