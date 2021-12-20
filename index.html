@@ -3,7 +3,7 @@
   <title>Poker Scraper</title>
   <style>
     body {
-      font-family: "Helvetica Neue", helvetica, arial,serif;
+      font-family: "Helvetica Neue", helvetica, arial, serif;
       padding: 15px;
     }
 
@@ -21,6 +21,7 @@
   <script>
     var host = location.origin.replace(/^http/, 'ws')
     var ws = new WebSocket(host);
+    ws.send('do you hear me?')
     ws.onmessage = function (event) {
       var li = document.createElement('li');
       li.innerHTML = JSON.parse(event.data);
