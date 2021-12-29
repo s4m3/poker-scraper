@@ -83,7 +83,7 @@ async function readUrlsFromFile() {
 
 
 const withBrowser = async (fn) => {
-  const browser = await puppeteer.launch();
+  const browser = await puppeteer.launch({ args: ['--no-sandbox'] });
   try {
     return await fn(browser);
   } finally {
