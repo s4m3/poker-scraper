@@ -23,6 +23,17 @@ function parseCurrency(currency) {
   }[currency]);
 }
 
+const suitMap = {
+  'DIAMONDS': 'd',
+  'HEARTS': 'h',
+  'SPADES': 's',
+  'CLUBS': 'c'
+}
+
+function getCardString({ rank, suit }) {
+  return `${rank}${suitMap[suit]}`
+}
+
 function getHandTitle(key, currency, blinds, rounds) {
   // Winamax Poker - CashGame - HandId: #16721916-72-1638967155 - Holdem no limit (5€/10€) - 2021/12/08 12:39:15 UTC
   const handNumber = key;
@@ -51,7 +62,7 @@ function getSeatsList(seats, currency) {
     Seat 5: Incognito 5 (383.82€)
   * */
   const parsedSeats = seats.map((seat) =>
-    `Seat ${seat.index}: ${seat.account} (${seat.stack + seat.potContributions + seat.rakeTaken}${currency})`
+    `Seat ${seat.index}: ${seat.name} (${seat.stack + seat.potContributions + seat.rakeTaken}${currency})`
   )
   return `${parsedSeats.join('\n')}\n`;
 }
@@ -67,8 +78,8 @@ function getBlindsRound(seats, blinds, currency, gameState) {
   const smallBlindSeat = seats.find(s => !!s.isSmallBlind);
   const bigBlindSeat = seats.find(s => !!s.isBigBlind);
 
-  const smallBlindRound = `${smallBlindSeat.account}: posts small blind ${blinds.small}${currency}`;
-  const bigBlindRound = `${bigBlindSeat.account}: posts big blind ${blinds.big}${currency}`;
+  const smallBlindRound = `${smallBlindSeat.name}: posts small blind ${blinds.small}${currency}`;
+  const bigBlindRound = `${bigBlindSeat.name}: posts big blind ${blinds.big}${currency}`;
 
   gameState.currentTopBet = blinds.big;
 
@@ -94,31 +105,35 @@ function getSummary(seats, rakeTaken, currency, rounds) {
 
   const getPositionLabel = (seat) => {
     if (seat.isBigBlind) {
-      return '(big blind) ';
+      return ' (big blind) ';
     }
     if (seat.isSmallBlind) {
-      return '(small blind) ';
+      return ' (small blind) ';
     }
     if (seat.isDealer) {
-      return '(button) ';
+      return ' (button) ';
     }
     return ''
   }
 
-  const getAction = (seat, currency) => {
-    const { winnings, isDealer, isBigBlind, isSmallBlind } = seat;
-
-    if(!winnings) {
+  const getShowedLabel = (seat) => {
+    if (seat.mucked) {
       return '';
     }
 
-    let positionString = '';
-    if(isDealer) positionString = '(button) ';
-    if(isBigBlind) positionString = '(big blind) ';
-    if(isSmallBlind) positionString = '(small blind) ';
+    const holeCards = seat.cards.filter(c => c.holeCard).map(getCardString).join(' ');
+    return ` showed [${holeCards}] and `;
+  }
+
+  const getAction = (seat, currency) => {
+    const { winnings } = seat;
+
+    if (!winnings) {
+      return '';
+    }
 
     if (winnings > 0) {
-        return `${positionString}won ${winnings}${currency}`
+      return `won ${winnings}${currency}`
     }
 
     //TODO: other summaries...
@@ -130,12 +145,12 @@ function getSummary(seats, rakeTaken, currency, rounds) {
     const flopCardsString = getRoundCardsString(rounds, 'FLOP');
     const turnCardString = getRoundCardsString(rounds, 'TURN');
     const riverCardString = getRoundCardsString(rounds, 'RIVER');
-    if(!flopCardsString && !turnCardString && !riverCardString) {
+    if (!flopCardsString && !turnCardString && !riverCardString) {
       return ''
     }
     let allCardsString = flopCardsString;
-    if(turnCardString) allCardsString = `${allCardsString} ${turnCardString}`;
-    if(riverCardString) allCardsString = `${allCardsString} ${riverCardString}`;
+    if (turnCardString) allCardsString = `${allCardsString} ${turnCardString}`;
+    if (riverCardString) allCardsString = `${allCardsString} ${riverCardString}`;
     return `Board: [${allCardsString}]\n`
   }
 
@@ -145,7 +160,8 @@ function getSummary(seats, rakeTaken, currency, rounds) {
   const total = `Total pot ${potContributions} | ${rakeLabel}`
   const board = getBoard(rounds);
   const seatsResultArray = seats.filter(seat => seat.winnings).map(((seat) => {
-    return `Seat ${seat.index}: ${seat.account} ${getPositionLabel(seat)}${getAction(seat, currency)}`
+    return `Seat ${seat.index}: ${seat.name}${getPositionLabel(seat)}${getShowedLabel(seat)}${getAction(seat,
+      currency)}`
   }));
   return `${SUMMARY}\n${total}\n${board}${seatsResultArray.join('\n')}\n`;
 }
@@ -170,8 +186,14 @@ function parseActions(actions, accountByIndex, currency, gameState) {
           return `${actionHolder} calls ${amount}${currency}`
         case ACTION_TYPES.RAISE: {
           const previousTopBet = gameState.currentTopBet;
+          let actionLabel = '';
+          if(previousTopBet === 0) {
+            actionLabel = `${actionHolder} bets ${amount}${currency}`
+          } else {
+            actionLabel = `${actionHolder} raises ${amount - previousTopBet}${currency} to ${amount}${currency}`
+          }
           gameState.currentTopBet = amount;
-          return `${actionHolder} raises ${amount - previousTopBet}${currency} to ${amount}${currency}`
+          return actionLabel;
         }
         case ACTION_TYPES.CHECK:
           return `${actionHolder} checks`
@@ -179,26 +201,6 @@ function parseActions(actions, accountByIndex, currency, gameState) {
           return '';
       }
     }).filter(each => !!each); // remove empty strings
-}
-
-function getPreflopRound(actions, accountByIndex, currency, gameState) {
-  if (!actions || actions.length === 0) {
-    return '';
-  }
-  const headerLabel = '*** PRE-FLOP ***';
-  const actionLabels = parseActions(actions, accountByIndex, currency, gameState);
-  return `${headerLabel}\n${actionLabels.join('\n')}`
-}
-
-const suitMap = {
-  'DIAMONDS': 'd',
-  'HEARTS': 'h',
-  'SPADES': 's',
-  'CLUBS': 'c'
-}
-
-function getCardString({ rank, suit }) {
-  return `${rank}${suitMap[suit]}`
 }
 
 function getRoundCardsString(rounds, type) {
@@ -213,14 +215,29 @@ function somethingHappensInRound(actions, rounds, roundType) {
   return (actions && actions.length > 0) || rounds.some(({ round }) => round === roundType)
 }
 
+function getActionLabels(actions, accountByIndex, currency, gameState) {
+  const actionLabels = parseActions(actions, accountByIndex, currency, gameState);
+  if(actionLabels.length === 0) {
+    return '';
+  }
+  return `\n${actionLabels.join('\n')}`
+}
+
+function getPreflopRound(actions, accountByIndex, currency, gameState) {
+  if (!actions || actions.length === 0) {
+    return '';
+  }
+  const headerLabel = '*** PRE-FLOP ***';
+  return `${headerLabel}${getActionLabels(actions, accountByIndex, currency, gameState)}\n`
+}
+
 function getFlopRound(actions, rounds, accountByIndex, currency, gameState) {
   if (!somethingHappensInRound(actions, rounds, 'FLOP')) {
     return '';
   }
 
   const headerLabel = `*** FLOP *** [${getRoundCardsString(rounds, 'FLOP')}]`;
-  const actionLabels = parseActions(actions, accountByIndex, currency, gameState);
-  return `${headerLabel}\n${actionLabels.join('\n')}`
+  return `${headerLabel}${getActionLabels(actions, accountByIndex, currency, gameState)}\n`
 }
 
 function getTurnRound(actions, rounds, accountByIndex, currency, gameState) {
@@ -228,8 +245,7 @@ function getTurnRound(actions, rounds, accountByIndex, currency, gameState) {
     return '';
   }
   const headerLabel = `*** TURN *** [${getRoundCardsString(rounds, 'FLOP')}][${getRoundCardsString(rounds, 'TURN')}]`;
-  const actionLabels = parseActions(actions, accountByIndex, currency, gameState);
-  return `${headerLabel}\n${actionLabels.join('\n')}`
+  return `${headerLabel}${getActionLabels(actions, accountByIndex, currency, gameState)}\n`
 }
 
 function getRiverRound(actions, rounds, accountByIndex, currency, gameState) {
@@ -238,13 +254,12 @@ function getRiverRound(actions, rounds, accountByIndex, currency, gameState) {
   }
   const headerLabel = `*** RIVER *** [${getRoundCardsString(rounds, 'FLOP')} ${getRoundCardsString(rounds,
     'TURN')}][${getRoundCardsString(rounds, 'RIVER')}]`;
-  const actionLabels = parseActions(actions, accountByIndex, currency, gameState);
-  return `${headerLabel}\n${actionLabels.join('\n')}`
+  return `${headerLabel}${getActionLabels(actions, accountByIndex, currency, gameState)}\n`
 }
 
 function getRounds(seats, rounds, currency, gameState) {
 
-  const accountByIndex = seats.reduce((all, curr) => ({ ...all, [curr.index]: curr.account }), {});
+  const accountByIndex = seats.reduce((all, curr) => ({ ...all, [curr.index]: curr.name }), {});
   const allActionsSorted = seats.reduce((all, currentSeat) => {
     const actions = currentSeat.actions.reduce((allOfSeat, action) => {
       // blind bettings are done already in previous step, so they are ignored here
@@ -257,6 +272,7 @@ function getRounds(seats, rounds, currency, gameState) {
           ...action,
           index: currentSeat.index,
           account: currentSeat.account,
+          name: currentSeat.name,
           dayjsTime: dayjs(action.time)
         }
       ]
@@ -314,16 +330,15 @@ function getRounds(seats, rounds, currency, gameState) {
   });
 
   const preflopRound = getPreflopRound(actionsPerRound[ROUNDS.PREFLOP], accountByIndex, currency, gameState);
+  gameState.currentTopBet = 0;
   const flopRound = getFlopRound(actionsPerRound[ROUNDS.FLOP], rounds, accountByIndex, currency, gameState);
+  gameState.currentTopBet = 0;
   const turnRound = getTurnRound(actionsPerRound[ROUNDS.TURN], rounds, accountByIndex, currency, gameState);
+  gameState.currentTopBet = 0;
   const riverRound = getRiverRound(actionsPerRound[ROUNDS.RIVER], rounds, accountByIndex, currency, gameState);
+  gameState.currentTopBet = 0;
 
-  console.log('preflopRound', preflopRound);
-  console.log('flopRound', flopRound);
-  console.log('turnRound', turnRound);
-  console.log('riverRound', riverRound);
-
-  return `${preflopRound}\n${flopRound}\n${turnRound}\n${riverRound}\n`;
+  return `${preflopRound}${flopRound}${turnRound}${riverRound}`;
 
 }
 
