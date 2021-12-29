@@ -49,12 +49,17 @@ async function clickButtonOnPageAndWait(page, url, uniqueGames) {
     try {
       console.log('Go to url', url);
       await page.goto(url);
+      console.log('done 1');
       const cdp = await page.target().createCDPSession();
+      console.log('done 2');
       await cdp.send('Network.enable');
+      console.log('done 3');
       await cdp.send('Page.enable');
+      console.log('done 4');
       cdp.on('Network.webSocketFrameReceived', parseWebsocketFrame);
-
+      console.log('done 5');
       await page.evaluate(async () => {
+        console.log('evaluate...');
         const buttonElements = document.getElementsByClassName(
           "md-icon-button md-fab md-accent md-button md-dance-theme md-ink-ripple");
         const btn = buttonElements[0];
@@ -64,7 +69,7 @@ async function clickButtonOnPageAndWait(page, url, uniqueGames) {
         btn.click();
       });
     } catch (e) {
-      console.error('error!!!', e);
+      console.error('error while checking url', e);
 
     }
 
