@@ -47,6 +47,13 @@
       // li.innerHTML = received;
       // document.querySelector('#pings').appendChild(li);
     };
+
+    ws.onclose = function (event) {
+      console.log('close event', event);
+      var received = dec.decode(event.data);
+      var outputEl = document.getElementById('output');
+      outputEl.innerHTML = received;
+    }
   </script>
 
   <style>

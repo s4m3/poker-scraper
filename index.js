@@ -30,6 +30,13 @@ wss.on("connection", function (ws) {
     const decoder = new TextDecoder();
     console.log('received: %s', data);
 
+    let dotNum = 0;
+
+    const interval = setInterval(() => {
+      dotNum = dotNum + 1;
+      ws.send(encoder.encode(`parsing${Array.from(Array(dotNum)).map(() => '.').join('')}`));
+    }, 1000);
+
     try {
       ws.send(encoder.encode('scraping...'));
       var uniqueGames = await scraper.extractGames(decoder.decode(data));
@@ -44,6 +51,8 @@ wss.on("connection", function (ws) {
       console.log('done');
     } catch (e) {
       ws.send(encoder.encode(e));
+    } finally {
+      clearInterval(interval);
     }
 
 
