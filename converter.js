@@ -187,7 +187,7 @@ function parseActions(actions, accountByIndex, currency, gameState) {
         case ACTION_TYPES.RAISE: {
           const previousTopBet = gameState.currentTopBet;
           let actionLabel = '';
-          if(previousTopBet === 0) {
+          if (previousTopBet === 0) {
             actionLabel = `${actionHolder} bets ${amount}${currency}`
           } else {
             actionLabel = `${actionHolder} raises ${amount - previousTopBet}${currency} to ${amount}${currency}`
@@ -217,7 +217,7 @@ function somethingHappensInRound(actions, rounds, roundType) {
 
 function getActionLabels(actions, accountByIndex, currency, gameState) {
   const actionLabels = parseActions(actions, accountByIndex, currency, gameState);
-  if(actionLabels.length === 0) {
+  if (actionLabels.length === 0) {
     return '';
   }
   return `\n${actionLabels.join('\n')}`
@@ -371,4 +371,16 @@ async function convert() {
   fs.writeFileSync('output.txt', output, { flag: 'w' });
 }
 
-convert();
+async function convertGames(games) {
+  console.log('converting games', games)
+  const gameKeys = Object.keys(games);
+
+  const convertedGames = gameKeys.map(key => getGameText(games[key]));
+
+  const output = convertedGames.join('\n');
+  console.log('output', output);
+  return output;
+}
+
+exports.convert = convertGames;
+// convert();

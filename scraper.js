@@ -3,9 +3,7 @@ const fs = require('fs');
 const fsPromises = require('fs').promises;
 const bluebird = require("bluebird");
 
-const uniqueGames = {};
-
-const saveGame = (key, game) => {
+const saveGame = (key, game, uniqueGames) => {
   if (!key || uniqueGames[key]) {
     return;
   }
@@ -13,6 +11,7 @@ const saveGame = (key, game) => {
   uniqueGames[key] = game;
 }
 
+/*
 async function parseLogs(e) {
   const args = await Promise.all(e.args().map(a => a.jsonValue()));
   if (args && args.length === 1) {
@@ -21,9 +20,10 @@ async function parseLogs(e) {
     saveGame(key, game);
   }
 }
+ */
 
 
-async function clickButtonOnPageAndWait(page, url) {
+async function clickButtonOnPageAndWait(page, url, uniqueGames) {
   await new Promise(async function (resolve) {
     const parseWebsocketFrame = (response) => {
       let payload;
@@ -36,7 +36,7 @@ async function clickButtonOnPageAndWait(page, url) {
           payload = response.response.payloadData.toString().replace(/^\d+/, '');
           const games = JSON.parse(payload);
           games.forEach(game => {
-            saveGame(game.key, game);
+            saveGame(game.key, game, uniqueGames);
             resolve();
           })
         } catch (e) {
@@ -46,37 +46,41 @@ async function clickButtonOnPageAndWait(page, url) {
       }
     }
 
-    await page.goto(url);
-    const cdp = await page.target().createCDPSession();
-    await cdp.send('Network.enable');
-    await cdp.send('Page.enable');
-    cdp.on('Network.webSocketFrameReceived', parseWebsocketFrame);
+    try {
+      await page.goto(url);
+      const cdp = await page.target().createCDPSession();
+      await cdp.send('Network.enable');
+      await cdp.send('Page.enable');
+      cdp.on('Network.webSocketFrameReceived', parseWebsocketFrame);
 
-    await page.evaluate(async () => {
-      const buttonElements = document.getElementsByClassName(
-        "md-icon-button md-fab md-accent md-button md-dance-theme md-ink-ripple");
-      const btn = buttonElements[0];
-      if (!btn) {
-        throw `No button found on ${url}`;
-      }
-      btn.click();
-    });
+      await page.evaluate(async () => {
+        const buttonElements = document.getElementsByClassName(
+          "md-icon-button md-fab md-accent md-button md-dance-theme md-ink-ripple");
+        const btn = buttonElements[0];
+        if (!btn) {
+          throw `No button found on ${url}`;
+        }
+        btn.click();
+      });
+    } catch (e) {
+      console.error(e);
+
+    }
+
   });
 }
 
 
-async function getUrls() {
-  const parseInput = (inputString) => inputString.replace(/\t.*/gm, '').split('\n').filter(u => !!u);
+async function readUrlsFromFile() {
   let inputData = '';
   try {
     inputData = await fsPromises.readFile('input.txt', 'utf8');
   } catch (e) {
     console.error('Cannot read in input.txt', e);
   }
-
-  return parseInput(inputData);
-
+  return inputData;
 }
+
 
 const withBrowser = async (fn) => {
   const browser = await puppeteer.launch();
@@ -96,23 +100,43 @@ const withPage = (browser) => async (fn) => {
   }
 }
 
+const parseUrls = (inputString) => inputString.replace(/\t.*/gm, '').split('\n').filter(u => !!u.trim());
 
-async function run() {
+
+async function extractGames(urlString) {
   console.log('####### EXECUTING GAME EXTRACTION #######');
-  const urls = await getUrls();
+  console.log('Extracting urls: ', urlString);
+  const uniqueGames = {};
+  const urls = parseUrls(urlString);
+  console.log('parsed urls', urls);
   const amount = urls.length;
   console.log(`Found ${amount} urls!`);
-  const results = await withBrowser(async (browser) => {
-    return bluebird.map(urls, async (url, idx) => {
-      return withPage(browser)(async (page) => {
-        console.log(`Parsing ${idx}/${amount}... URL:${url}`)
-        await clickButtonOnPageAndWait(page, url);
-      });
-    }, { concurrency: 10 });
-  });
+  try {
+    const results = await withBrowser(async (browser) => {
+      return bluebird.map(urls, async (url, idx) => {
+        return withPage(browser)(async (page) => {
+          console.log(`Parsing ${idx}/${amount}... URL:${url}`)
+          await clickButtonOnPageAndWait(page, url, uniqueGames);
+        });
+      }, { concurrency: 10 });
+    });
+  } catch (e) {
+    console.error(e);
+    return e;
+  }
 
+
+  return uniqueGames;
+}
+
+async function run() {
+  const urlsFromFile = await readUrlsFromFile();
+  const uniqueGames = await extractGames(urlsFromFile);
   console.log('PARSING DONE. Writing output to games.json');
   fs.writeFileSync('games.json', JSON.stringify(uniqueGames), { flag: 'w' });
 }
 
-run();
+
+exports.extractGames = extractGames;
+
+// run();

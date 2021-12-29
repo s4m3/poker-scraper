@@ -1,6 +1,9 @@
 var WebSocketServer = require("ws").Server
 var http = require("http")
 var express = require("express")
+var scraper = require('./scraper');
+var converter = require('./converter');
+
 var app = express()
 var port = process.env.PORT || 5000
 
@@ -22,8 +25,27 @@ wss.on("connection", function (ws) {
     console.log("websocket connection close");
   })
 
-  ws.on("message", function (data) {
+  ws.on("message", async function (data) {
+    const encoder = new TextEncoder();
+    const decoder = new TextDecoder();
     console.log('received: %s', data);
-    ws.send(data);
+
+    try {
+      ws.send(encoder.encode('scraping...'));
+      var uniqueGames = await scraper.extractGames(decoder.decode(data));
+      console.log('here 2');
+      ws.send(encoder.encode('converting...'));
+      console.log('here 3');
+      var convertedGames = await converter.convert(uniqueGames);
+      console.log('here 4');
+      console.log('convertedGames', convertedGames);
+
+      ws.send(encoder.encode(convertedGames));
+      console.log('done');
+    } catch (e) {
+      ws.send(encoder.encode(e));
+    }
+
+
   });
 })
