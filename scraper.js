@@ -47,6 +47,7 @@ async function clickButtonOnPageAndWait(page, url, uniqueGames) {
     }
 
     try {
+      console.log('Go to url', url);
       await page.goto(url);
       const cdp = await page.target().createCDPSession();
       await cdp.send('Network.enable');
@@ -63,7 +64,7 @@ async function clickButtonOnPageAndWait(page, url, uniqueGames) {
         btn.click();
       });
     } catch (e) {
-      console.error(e);
+      console.error('error!!!', e);
 
     }
 
