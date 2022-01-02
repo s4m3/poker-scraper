@@ -26,6 +26,7 @@ async function parseLogs(e) {
 async function clickButtonOnPageAndWait(page, url, uniqueGames) {
   await new Promise(async function (resolve) {
     const parseWebsocketFrame = (response) => {
+      console.log('parsing websocket frame...', response);
       let payload;
       if (response &&
         response.response &&
@@ -46,30 +47,13 @@ async function clickButtonOnPageAndWait(page, url, uniqueGames) {
       }
     }
 
-    try {
-      console.log('Go to url', url);
-      await page.goto(url);
-      const cdp = await page.target().createCDPSession();
-      await cdp.send('Network.enable');
-      await cdp.send('Page.enable');
-      cdp.on('Network.webSocketFrameReceived', parseWebsocketFrame);
-      console.log('before evaluate');
-      await page.evaluate(`async () => {
-        console.log('evaluate...');
-        const buttonElements = document.getElementsByClassName(
-          "md-icon-button md-fab md-accent md-button md-dance-theme md-ink-ripple");
-        const btn = buttonElements[0];
-        if (!btn) {
-          throw \`No button found on ${url}\`;
-        }
-        btn.click();
-      }`);
-      console.log('after evaluate');
-    } catch (e) {
-      console.error('error while checking url', e);
-
-    }
-
+    console.log('Go to url', url);
+    await page.goto(url);
+    const cdp = await page.target().createCDPSession();
+    await cdp.send('Network.enable');
+    await cdp.send('Page.enable');
+    console.log('cdp setup done', cdp);
+    cdp.on('Network.webSocketFrameReceived', parseWebsocketFrame);
   });
 }
 
