@@ -48,12 +48,14 @@ async function clickButtonOnPageAndWait(page, url, uniqueGames) {
     }
 
     console.log('Go to url', url);
-    await page.goto(url);
+
     const cdp = await page.target().createCDPSession();
     await cdp.send('Network.enable');
     await cdp.send('Page.enable');
-    console.log('cdp setup done', cdp);
     cdp.on('Network.webSocketFrameReceived', parseWebsocketFrame);
+
+    await page.goto(url);
+
   });
 }
 
