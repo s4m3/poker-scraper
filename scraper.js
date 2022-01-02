@@ -49,15 +49,11 @@ async function clickButtonOnPageAndWait(page, url, uniqueGames) {
     try {
       console.log('Go to url', url);
       await page.goto(url);
-      console.log('done 1');
       const cdp = await page.target().createCDPSession();
-      console.log('done 2');
       await cdp.send('Network.enable');
-      console.log('done 3');
       await cdp.send('Page.enable');
-      console.log('done 4');
       cdp.on('Network.webSocketFrameReceived', parseWebsocketFrame);
-      console.log('done 5');
+      console.log('before evaluate');
       await page.evaluate(`async () => {
         console.log('evaluate...');
         const buttonElements = document.getElementsByClassName(
@@ -68,6 +64,7 @@ async function clickButtonOnPageAndWait(page, url, uniqueGames) {
         }
         btn.click();
       }`);
+      console.log('after evaluate');
     } catch (e) {
       console.error('error while checking url', e);
 
@@ -121,7 +118,7 @@ async function extractGames(urlString) {
     const results = await withBrowser(async (browser) => {
       return bluebird.map(urls, async (url, idx) => {
         return withPage(browser)(async (page) => {
-          console.log(`Parsing ${idx}/${amount}... URL:${url}`)
+          console.log(`Parsing ${idx + 1}/${amount}... URL:${url}`)
           await clickButtonOnPageAndWait(page, url, uniqueGames);
         });
       }, { concurrency: 10 });
