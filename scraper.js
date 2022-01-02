@@ -58,16 +58,16 @@ async function clickButtonOnPageAndWait(page, url, uniqueGames) {
       console.log('done 4');
       cdp.on('Network.webSocketFrameReceived', parseWebsocketFrame);
       console.log('done 5');
-      await page.evaluate(async () => {
+      await page.evaluate(`async () => {
         console.log('evaluate...');
         const buttonElements = document.getElementsByClassName(
           "md-icon-button md-fab md-accent md-button md-dance-theme md-ink-ripple");
         const btn = buttonElements[0];
         if (!btn) {
-          throw `No button found on ${url}`;
+          throw \`No button found on ${url}\`;
         }
         btn.click();
-      });
+      }`);
     } catch (e) {
       console.error('error while checking url', e);
 
