@@ -53,6 +53,12 @@ async function clickButtonOnPageAndWait(page, url, uniqueGames) {
     await cdp.send('Network.enable');
     await cdp.send('Page.enable');
     cdp.on('Network.webSocketFrameReceived', parseWebsocketFrame);
+    cdp.on('Network.webSocketCreated', () => console.log('webSocketCreated'));
+    cdp.on('Network.webSocketClosed', () => console.log('webSocketClosed'));
+    cdp.on('Network.webSocketFrameError', () => console.log('webSocketFrameError'));
+    cdp.on('Network.webSocketFrameSent', () => console.log('webSocketFrameSent'));
+    cdp.on('Network.webSocketHandshakeResponseReceived', () => console.log('webSocketHandshakeResponseReceived'));
+    cdp.on('Network.webSocketWillSendHandshakeRequest', () => console.log('webSocketWillSendHandshakeRequest'));
 
     await page.goto(url);
 
