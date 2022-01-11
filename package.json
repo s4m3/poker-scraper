@@ -6,6 +6,7 @@
     "dayjs": "^1.10.7",
     "express": "^4.17.2",
     "puppeteer": "^13.0.0",
+    "user-agents": "^1.0.893",
     "ws": "^8.4.0"
   },
   "engines": {

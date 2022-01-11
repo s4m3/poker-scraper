@@ -2,6 +2,7 @@ const puppeteer = require('puppeteer');
 const fs = require('fs');
 const fsPromises = require('fs').promises;
 const bluebird = require("bluebird");
+const userAgent = require("user-agents");
 
 const saveGame = (key, game, uniqueGames) => {
   if (!key || uniqueGames[key]) {
@@ -148,6 +149,7 @@ async function extractGames(urlString) {
 
           // browser console log based
           page.on('console', (e) => parseLogs(e, uniqueGames));
+          await page.setUserAgent(userAgent.toString());
           await page.goto(url);
           await readGameFromPage(page, url);
 
