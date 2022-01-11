@@ -24,25 +24,32 @@ async function parseLogs(e, uniqueGames) {
 
 async function readGameFromPage(page, url) {
   const errorString = `No button found on ${url}`;
-  console.log('reading game from page with url ', url);
-  console.log('page', page);
   try {
-    await page.evaluate(async () => {
-      console.log('document', document);
-      const buttonElements = document.getElementsByClassName(
-        "md-icon-button md-fab md-accent md-button md-dance-theme md-ink-ripple");
-      const btn = buttonElements[0];
-      console.log('btn', btn)
-      // if (!btn) {
-      //   throw new Error(errorString);
-      // }
-      btn.click();
-
-      // wait for logs
-      await new Promise(function (resolve) {
-        setTimeout(resolve, 5500);
-      });
-    });
+    // await new Promise(function (resolve) {
+    //       setTimeout(resolve, 5500);
+    //     });
+    await page.waitForTimeout(4000)
+    //await page.waitForSelector("md-icon-button md-fab md-accent md-button md-dance-theme md-ink-ripple", {visible: true});
+    // await page.$eval("md-icon-button md-fab md-accent md-button md-dance-theme md-ink-ripple", btn => btn.click());
+    await Promise.all([
+      await page.click("md-icon-button md-fab md-accent md-button md-dance-theme md-ink-ripple")
+  ]);
+    // await page.evaluate(async () => {
+    //   console.log('document', document);
+    //   const buttonElements = document.getElementsByClassName(
+    //     "md-icon-button md-fab md-accent md-button md-dance-theme md-ink-ripple");
+    //   const btn = buttonElements[0];
+    //   console.log('btn', btn)
+    //   // if (!btn) {
+    //   //   throw new Error(errorString);
+    //   // }
+    //   btn.click();
+    //
+    //   // wait for logs
+    //   await new Promise(function (resolve) {
+    //     setTimeout(resolve, 5500);
+    //   });
+    // });
   } catch (e) {
     console.error(e);
   }
