@@ -26,12 +26,14 @@ async function readGameFromPage(page, url) {
   const errorString = `No button found on ${url}`;
   console.log('reading game from page with url ', url);
   await page.evaluate(async () => {
+    console.log('document', document);
     const buttonElements = document.getElementsByClassName(
       "md-icon-button md-fab md-accent md-button md-dance-theme md-ink-ripple");
     const btn = buttonElements[0];
-    if (!btn) {
-      throw new Error(errorString);
-    }
+    console.log('btn', btn)
+    // if (!btn) {
+    //   throw new Error(errorString);
+    // }
     btn.click();
 
     // wait for logs
