@@ -11,17 +11,33 @@ const saveGame = (key, game, uniqueGames) => {
   uniqueGames[key] = game;
 }
 
-/*
-async function parseLogs(e) {
+
+async function parseLogs(e, uniqueGames) {
   const args = await Promise.all(e.args().map(a => a.jsonValue()));
   if (args && args.length === 1) {
     const game = args[0];
     const { key } = game;
-    saveGame(key, game);
+    saveGame(key, game, uniqueGames);
   }
 }
- */
 
+
+async function readGameFromPage(page, url) {
+  await page.evaluate(async () => {
+    const buttonElements = document.getElementsByClassName(
+      "md-icon-button md-fab md-accent md-button md-dance-theme md-ink-ripple");
+    const btn = buttonElements[0];
+    if (!btn) {
+      throw `No button found on ${url}`;
+    }
+    btn.click();
+
+    // wait for logs
+    await new Promise(function (resolve) {
+      setTimeout(resolve, 5500);
+    });
+  });
+}
 
 async function clickButtonOnPageAndWait(page, url, uniqueGames) {
   await new Promise(async function (resolve) {
@@ -106,12 +122,20 @@ async function extractGames(urlString) {
   console.log('parsed urls', urls);
   const amount = urls.length;
   console.log(`Found ${amount} urls!`);
+
   try {
     const results = await withBrowser(async (browser) => {
       return bluebird.map(urls, async (url, idx) => {
         return withPage(browser)(async (page) => {
-          console.log(`Parsing ${idx + 1}/${amount}... URL:${url}`)
-          await clickButtonOnPageAndWait(page, url, uniqueGames);
+          console.log(`Parsing ${idx + 1}/${amount}... URL:${url}`);
+
+          // browser console log based
+          page.on('console', (e) => parseLogs(e, uniqueGames));
+          await page.goto(url);
+          await readGameFromPage(page, url);
+
+          // websocket based
+          //await clickButtonOnPageAndWait(page, url, uniqueGames);
         });
       }, { concurrency: 10 });
     });
