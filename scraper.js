@@ -25,22 +25,27 @@ async function parseLogs(e, uniqueGames) {
 async function readGameFromPage(page, url) {
   const errorString = `No button found on ${url}`;
   console.log('reading game from page with url ', url);
-  await page.evaluate(async () => {
-    console.log('document', document);
-    const buttonElements = document.getElementsByClassName(
-      "md-icon-button md-fab md-accent md-button md-dance-theme md-ink-ripple");
-    const btn = buttonElements[0];
-    console.log('btn', btn)
-    // if (!btn) {
-    //   throw new Error(errorString);
-    // }
-    btn.click();
+  try {
+    await page.evaluate(async () => {
+      console.log('document', document);
+      const buttonElements = document.getElementsByClassName(
+        "md-icon-button md-fab md-accent md-button md-dance-theme md-ink-ripple");
+      const btn = buttonElements[0];
+      console.log('btn', btn)
+      // if (!btn) {
+      //   throw new Error(errorString);
+      // }
+      btn.click();
 
-    // wait for logs
-    await new Promise(function (resolve) {
-      setTimeout(resolve, 5500);
+      // wait for logs
+      await new Promise(function (resolve) {
+        setTimeout(resolve, 5500);
+      });
     });
-  });
+  } catch (e) {
+    console.error(e);
+  }
+
 }
 
 async function clickButtonOnPageAndWait(page, url, uniqueGames) {
