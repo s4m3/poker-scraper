@@ -30,11 +30,12 @@ async function readGameFromPage(page, url) {
     //       setTimeout(resolve, 5500);
     //     });
     await page.waitForTimeout(4000)
-    //await page.waitForSelector("md-icon-button md-fab md-accent md-button md-dance-theme md-ink-ripple", {visible: true});
-    // await page.$eval("md-icon-button md-fab md-accent md-button md-dance-theme md-ink-ripple", btn => btn.click());
+    //await page.waitForSelector("md-icon-button md-fab md-accent md-button md-dance-theme md-ink-ripple", {visible:
+    // true}); await page.$eval("md-icon-button md-fab md-accent md-button md-dance-theme md-ink-ripple", btn =>
+    // btn.click());
     await Promise.all([
       await page.click("md-icon-button md-fab md-accent md-button md-dance-theme md-ink-ripple")
-  ]);
+    ]);
     // await page.evaluate(async () => {
     //   console.log('document', document);
     //   const buttonElements = document.getElementsByClassName(
@@ -150,7 +151,11 @@ async function extractGames(urlString) {
           // browser console log based
           page.on('console', (e) => parseLogs(e, uniqueGames));
           await page.setUserAgent(userAgent.toString());
-          await page.goto(url);
+          await page.goto(url, {
+              timeout: 30000,
+              waitUntil: "domcontentloaded",
+            }
+          );
           await readGameFromPage(page, url);
 
           // websocket based
