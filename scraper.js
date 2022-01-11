@@ -25,6 +25,7 @@ async function parseLogs(e, uniqueGames) {
 async function readGameFromPage(page, url) {
   const errorString = `No button found on ${url}`;
   console.log('reading game from page with url ', url);
+  console.log('page', page);
   try {
     await page.evaluate(async () => {
       console.log('document', document);
@@ -103,7 +104,7 @@ async function readUrlsFromFile() {
 
 
 const withBrowser = async (fn) => {
-  const browser = await puppeteer.launch({ args: ['--no-sandbox', '--disable-setuid-sandbox'] });
+  const browser = await puppeteer.launch({ args: ['--no-sandbox'] });
   try {
     return await fn(browser);
   } finally {
