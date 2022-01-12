@@ -147,14 +147,13 @@ async function extractGames(urlString) {
   const url = urls[0];
   page.on('console', (e) => parseLogs(e, uniqueGames));
   await page.setUserAgent(userAgent.toString());
-  await page.goto(url, {
-      timeout: 30000,
-      waitUntil: "domcontentloaded",
-    }
-  );
-  await readGameFromPage(page, url);
+  await page.goto(url);
+  const html = await page.content();
+  // await readGameFromPage(page, url);
   await page.close();
   await browser.close();
+
+  return html;
 
   // try {
   //   const results = await withBrowser(async (browser) => {
@@ -183,7 +182,7 @@ async function extractGames(urlString) {
   // }
 
 
-  return uniqueGames;
+  // return uniqueGames;
 }
 
 async function run() {
