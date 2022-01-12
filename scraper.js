@@ -142,31 +142,45 @@ async function extractGames(urlString) {
   const amount = urls.length;
   console.log(`Found ${amount} urls!`);
 
-  try {
-    const results = await withBrowser(async (browser) => {
-      return bluebird.map(urls, async (url, idx) => {
-        return withPage(browser)(async (page) => {
-          console.log(`Parsing ${idx + 1}/${amount}... URL:${url}`);
+  const browser = await puppeteer.launch({ args: ['--no-sandbox'] });
+  const page = await browser.newPage();
+  const url = urls[0];
+  page.on('console', (e) => parseLogs(e, uniqueGames));
+  await page.setUserAgent(userAgent.toString());
+  await page.goto(url, {
+      timeout: 30000,
+      waitUntil: "domcontentloaded",
+    }
+  );
+  await readGameFromPage(page, url);
+  await page.close();
+  await browser.close();
 
-          // browser console log based
-          page.on('console', (e) => parseLogs(e, uniqueGames));
-          await page.setUserAgent(userAgent.toString());
-          await page.goto(url, {
-              timeout: 30000,
-              waitUntil: "domcontentloaded",
-            }
-          );
-          await readGameFromPage(page, url);
-
-          // websocket based
-          //await clickButtonOnPageAndWait(page, url, uniqueGames);
-        });
-      }, { concurrency: 10 });
-    });
-  } catch (e) {
-    console.error(e);
-    return e;
-  }
+  // try {
+  //   const results = await withBrowser(async (browser) => {
+  //     return bluebird.map(urls, async (url, idx) => {
+  //       return withPage(browser)(async (page) => {
+  //         console.log(`Parsing ${idx + 1}/${amount}... URL:${url}`);
+  //
+  //         // browser console log based
+  //         page.on('console', (e) => parseLogs(e, uniqueGames));
+  //         await page.setUserAgent(userAgent.toString());
+  //         await page.goto(url, {
+  //             timeout: 30000,
+  //             waitUntil: "domcontentloaded",
+  //           }
+  //         );
+  //         await readGameFromPage(page, url);
+  //
+  //         // websocket based
+  //         //await clickButtonOnPageAndWait(page, url, uniqueGames);
+  //       });
+  //     }, { concurrency: 10 });
+  //   });
+  // } catch (e) {
+  //   console.error(e);
+  //   return e;
+  // }
 
 
   return uniqueGames;
