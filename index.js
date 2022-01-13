@@ -40,11 +40,8 @@ wss.on("connection", function (ws) {
     try {
       ws.send(encoder.encode('scraping...'));
       var uniqueGames = await scraper.extractGames(decoder.decode(data));
-      console.log('here 2');
       ws.send(encoder.encode('converting...'));
-      console.log('here 3');
       var convertedGames = await converter.convert(uniqueGames);
-      console.log('here 4');
       console.log('convertedGames', convertedGames);
 
       ws.send(encoder.encode(convertedGames));

@@ -146,7 +146,11 @@ async function extractGames(urlString) {
   const page = await browser.newPage();
   const url = urls[0];
   page.on('console', (e) => parseLogs(e, uniqueGames));
-  await page.setUserAgent(userAgent.toString());
+  // await page.setUserAgent(userAgent.toString());
+
+  console.log('userAgent.toString()', userAgent.toString());
+  await page.setUserAgent(
+    'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/95.0.4638.54 Safari/537.36');
   await page.goto(url);
   const html = await page.content();
   // await readGameFromPage(page, url);
