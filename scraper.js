@@ -142,7 +142,7 @@ async function extractGames(urlString) {
   const amount = urls.length;
   console.log(`Found ${amount} urls!`);
 
-  const browser = await puppeteer.launch({ args: ['--no-sandbox'] });
+  const browser = await puppeteer.launch({ args: ['--no-sandbox'], headless: false });
   const page = await browser.newPage();
   const url = urls[0];
   page.on('console', (e) => parseLogs(e, uniqueGames));
