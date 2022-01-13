@@ -1,8 +1,14 @@
-const puppeteer = require('puppeteer');
+// const puppeteer = require('puppeteer');
 const fs = require('fs');
 const fsPromises = require('fs').promises;
 const bluebird = require("bluebird");
 const UserAgent = require("user-agents");
+
+const puppeteer = require('puppeteer-extra')
+
+// add stealth plugin and use defaults (all evasion techniques)
+const StealthPlugin = require('puppeteer-extra-plugin-stealth')
+puppeteer.use(StealthPlugin())
 
 const saveGame = (key, game, uniqueGames) => {
   if (!key || uniqueGames[key]) {
@@ -37,14 +43,12 @@ async function readGameFromPage(page, url) {
       await page.click("md-icon-button md-fab md-accent md-button md-dance-theme md-ink-ripple")
     ]);
     // await page.evaluate(async () => {
-    //   console.log('document', document);
     //   const buttonElements = document.getElementsByClassName(
     //     "md-icon-button md-fab md-accent md-button md-dance-theme md-ink-ripple");
     //   const btn = buttonElements[0];
-    //   console.log('btn', btn)
-    //   // if (!btn) {
-    //   //   throw new Error(errorString);
-    //   // }
+    //   if (!btn) {
+    //     throw new Error(errorString);
+    //   }
     //   btn.click();
     //
     //   // wait for logs
@@ -142,22 +146,19 @@ async function extractGames(urlString) {
   const amount = urls.length;
   console.log(`Found ${amount} urls!`);
 
-  const browser = await puppeteer.launch({ args: ['--no-sandbox'], headless: false });
+  const browser = await puppeteer.launch({ args: ['--no-sandbox'] });
   const page = await browser.newPage();
   const url = urls[0];
   page.on('console', (e) => parseLogs(e, uniqueGames));
-  // await page.setUserAgent(userAgent.toString());
 
   const userAgent = new UserAgent();
   await page.setUserAgent(userAgent.toString());
   await page.goto(url);
-  const html = await page.content();
-  console.log('html', html);
-  // await readGameFromPage(page, url);
+  // const html = await page.content();
+  // console.log('html', html);
+  await readGameFromPage(page, url);
   await page.close();
   await browser.close();
-
-  return '';
 
   // try {
   //   const results = await withBrowser(async (browser) => {
@@ -186,7 +187,7 @@ async function extractGames(urlString) {
   // }
 
 
-  // return uniqueGames;
+  return uniqueGames;
 }
 
 async function run() {
