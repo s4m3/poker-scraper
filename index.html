@@ -1,22 +1,7 @@
 <html lang="en">
 <head>
   <title>Poker Scraper</title>
-  <style>
-    body {
-      font-family: "Helvetica Neue", helvetica, arial, serif;
-      padding: 15px;
-    }
-
-    ul {
-      list-style: none;
-      margin: 0;
-      padding: 0;
-    }
-
-    ul li {
-      line-height: 1.4;
-    }
-  </style>
+  <link rel="stylesheet" href="https://unpkg.com/spectre.css/dist/spectre.min.css">
 
   <script defer>
     var host = location.origin.replace(/^http/, 'ws')
@@ -25,10 +10,9 @@
     var dec = new TextDecoder()
     window.onload = function () {
       var btnEl = document.getElementById('btn');
-      var inputEl = document.getElementById('input');
+      var inputEl = document.getElementById('url-input');
 
       btnEl.onclick = event => {
-        console.log(inputEl.value, typeof inputEl.value);
         ws.send(inputEl.value);
       }
     }
@@ -38,18 +22,12 @@
     // };
 
     ws.onmessage = function (event) {
-      // var li = document.createElement('li');
-      console.log('event', event);
       var received = dec.decode(event.data);
-      console.log('received data', received);
       var outputEl = document.getElementById('output');
       outputEl.innerHTML = received;
-      // li.innerHTML = received;
-      // document.querySelector('#pings').appendChild(li);
     };
 
     ws.onclose = function (event) {
-      console.log('close event', event);
       var received = dec.decode(event.data);
       var outputEl = document.getElementById('output');
       outputEl.innerHTML = received;
@@ -57,46 +35,44 @@
   </script>
 
   <style>
+    textarea {
+      resize: none;
+    }
+
     .panels {
       display: flex;
-      flex-direction: row;
-      justify-content: space-evenly;
-    }
-
-    .left-panel {
-      display: flex;
       flex-direction: column;
-      font-size: 8px;
-    }
-
-    .right-panel {
-
+      justify-content: space-evenly;
     }
   </style>
 </head>
 <body>
 <h1>Convert Hand Histories</h1>
-<ul id='ping'></ul>
 <div class="panels">
-  <div class="left-panel">
-    <label>
-  <textarea id="input" name="urls" cols="80" rows="30" style="white-space: pre">
-https://blockchain.poker/#/history?hand=755874ceda664b8208afc11df721f595	2021-04-30 21:57:09.780
-https://blockchain.poker/#/history?hand=e5d3b616122147d9f872219c199f3361	2021-04-30 21:57:25.689
-https://blockchain.poker/#/history?hand=38446518bc23c7d08a5fcaa9a98e0c3c	2021-04-30 21:59:08.464
-  </textarea>
-    </label>
-    <button id="btn">Get hand histories</button>
+  <div class="panel">
+    <div class="panel-body">
+      <div class="form-group">
+        <label class="form-label" for="url-input">List of URLs</label>
+        <textarea class="form-input" id="url-input" placeholder="Textarea" cols="150" rows="24">
+        https://blockchain.poker/#/history?hand=755874ceda664b8208afc11df721f595	2021-04-30 21:57:09.780
+        https://blockchain.poker/#/history?hand=e5d3b616122147d9f872219c199f3361	2021-04-30 21:57:25.689
+        https://blockchain.poker/#/history?hand=38446518bc23c7d08a5fcaa9a98e0c3c	2021-04-30 21:59:08.464
+      </textarea>
+      </div>
+    </div>
+    <div class="panel-footer">
+      <button id="btn" class="btn btn-primary">Get hand histories</button>
+    </div>
   </div>
-
-  <div class="right-panel">
-
-
-    <label>
-      <textarea id="output" name="output-text" cols="70" rows="50"></textarea>
-    </label>
+  <div class="panel">
+    <div class="panel-body">
+      <div class="form-group">
+        <label class="form-label" for="output">Hand histories</label>
+        <textarea class="form-input" id="output" placeholder="Textarea" cols="150" rows="24"></textarea>
+      </div>
+    </div>
   </div>
 </div>
-
+<ul id='ping'></ul>
 </body>
 </html>
