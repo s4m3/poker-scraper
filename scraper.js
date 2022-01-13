@@ -62,10 +62,9 @@ async function readGameFromPage(page, url) {
 
 }
 
-async function clickButtonOnPageAndWait(page, url, uniqueGames) {
+async function readFromWebsocketTraffic(page, url, uniqueGames) {
   await new Promise(async function (resolve) {
     const parseWebsocketFrame = (response) => {
-      console.log('parsing websocket frame...', response);
       let payload;
       if (response &&
         response.response &&
@@ -81,23 +80,14 @@ async function clickButtonOnPageAndWait(page, url, uniqueGames) {
           })
         } catch (e) {
           console.error(`Error while parsing payload ${response.response.payloadData}`)
-          console.error(payload);
         }
       }
     }
-
     console.log('Go to url', url);
-
     const cdp = await page.target().createCDPSession();
     await cdp.send('Network.enable');
     await cdp.send('Page.enable');
     cdp.on('Network.webSocketFrameReceived', parseWebsocketFrame);
-    cdp.on('Network.webSocketCreated', () => console.log('webSocketCreated'));
-    cdp.on('Network.webSocketClosed', () => console.log('webSocketClosed'));
-    cdp.on('Network.webSocketFrameError', () => console.log('webSocketFrameError'));
-    cdp.on('Network.webSocketFrameSent', () => console.log('webSocketFrameSent'));
-    cdp.on('Network.webSocketHandshakeResponseReceived', () => console.log('webSocketHandshakeResponseReceived'));
-    cdp.on('Network.webSocketWillSendHandshakeRequest', () => console.log('webSocketWillSendHandshakeRequest'));
 
     await page.goto(url);
 
@@ -146,46 +136,31 @@ async function extractGames(urlString) {
   const amount = urls.length;
   console.log(`Found ${amount} urls!`);
 
-  const browser = await puppeteer.launch({ args: ['--no-sandbox'] });
-  const page = await browser.newPage();
-  const url = urls[0];
-  page.on('console', (e) => parseLogs(e, uniqueGames));
+  try {
+    const results = await withBrowser(async (browser) => {
+      return bluebird.map(urls, async (url, idx) => {
+        return withPage(browser)(async (page) => {
+          console.log(`Parsing ${idx + 1}/${amount}... URL:${url}`);
 
-  const userAgent = new UserAgent();
-  await page.setUserAgent(userAgent.toString());
-  await page.goto(url);
-  const html = await page.content();
-  console.log('html', html);
-  await readGameFromPage(page, url);
-  await page.close();
-  await browser.close();
+          // browser console log based
+          // page.on('console', (e) => parseLogs(e, uniqueGames));
+          // await page.setUserAgent(userAgent.toString());
+          // await page.goto(url, {
+          //     timeout: 30000,
+          //     waitUntil: "domcontentloaded",
+          //   }
+          // );
+          // await readGameFromPage(page, url);
 
-  // try {
-  //   const results = await withBrowser(async (browser) => {
-  //     return bluebird.map(urls, async (url, idx) => {
-  //       return withPage(browser)(async (page) => {
-  //         console.log(`Parsing ${idx + 1}/${amount}... URL:${url}`);
-  //
-  //         // browser console log based
-  //         page.on('console', (e) => parseLogs(e, uniqueGames));
-  //         await page.setUserAgent(userAgent.toString());
-  //         await page.goto(url, {
-  //             timeout: 30000,
-  //             waitUntil: "domcontentloaded",
-  //           }
-  //         );
-  //         await readGameFromPage(page, url);
-  //
-  //         // websocket based
-  //         //await clickButtonOnPageAndWait(page, url, uniqueGames);
-  //       });
-  //     }, { concurrency: 10 });
-  //   });
-  // } catch (e) {
-  //   console.error(e);
-  //   return e;
-  // }
-
+          // websocket based
+          await readFromWebsocketTraffic(page, url, uniqueGames);
+        });
+      }, { concurrency: 10 });
+    });
+  } catch (e) {
+    console.error(e);
+    return e;
+  }
 
   return uniqueGames;
 }

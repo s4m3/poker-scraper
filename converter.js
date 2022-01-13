@@ -78,12 +78,12 @@ function getBlindsRound(seats, blinds, currency, gameState) {
   const smallBlindSeat = seats.find(s => !!s.isSmallBlind);
   const bigBlindSeat = seats.find(s => !!s.isBigBlind);
 
-  const smallBlindRound = `${smallBlindSeat.name}: posts small blind ${blinds.small}${currency}`;
-  const bigBlindRound = `${bigBlindSeat.name}: posts big blind ${blinds.big}${currency}`;
+  const smallBlindRound = smallBlindSeat ? `${smallBlindSeat.name}: posts small blind ${blinds.small}${currency}\n`: '';
+  const bigBlindRound = bigBlindSeat ? `${bigBlindSeat.name}: posts big blind ${blinds.big}${currency}\n` : '';
 
   gameState.currentTopBet = blinds.big;
 
-  return `${headerLabel}\n${smallBlindRound}\n${bigBlindRound}\n`
+  return `${headerLabel}\n${smallBlindRound}${bigBlindRound}`
 }
 
 function getSummary(seats, rakeTaken, currency, rounds) {

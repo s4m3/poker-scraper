@@ -47,6 +47,7 @@ wss.on("connection", function (ws) {
       ws.send(encoder.encode(convertedGames));
       console.log('done');
     } catch (e) {
+      console.error(e);
       ws.send(encoder.encode(e));
     } finally {
       clearInterval(interval);
