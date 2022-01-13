@@ -154,8 +154,8 @@ async function extractGames(urlString) {
   const userAgent = new UserAgent();
   await page.setUserAgent(userAgent.toString());
   await page.goto(url);
-  // const html = await page.content();
-  // console.log('html', html);
+  const html = await page.content();
+  console.log('html', html);
   await readGameFromPage(page, url);
   await page.close();
   await browser.close();
