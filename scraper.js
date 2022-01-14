@@ -91,6 +91,11 @@ async function readFromWebsocketTraffic(page, url, uniqueGames) {
 
     await page.goto(url);
 
+
+    // DEBUGGING
+    const html = await page.content();
+    console.log('html', html);
+
   });
 }
 
