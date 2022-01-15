@@ -372,13 +372,13 @@ async function convert() {
 }
 
 async function convertGames(games) {
-  console.log('converting games', games)
+  // console.log('converting games', games)
   const gameKeys = Object.keys(games);
 
   const convertedGames = gameKeys.map(key => getGameText(games[key]));
 
   const output = convertedGames.join('\n');
-  console.log('output', output);
+  // console.log('output', output);
   return output;
 }
 

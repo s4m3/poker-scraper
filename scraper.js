@@ -92,9 +92,9 @@ async function readFromWebsocketTraffic(page, url, uniqueGames) {
     await page.goto(url);
 
 
-    // DEBUGGING
-    const html = await page.content();
-    console.log('html', html);
+    // // DEBUGGING
+    // const html = await page.content();
+    // console.log('html', html);
 
   });
 }
@@ -129,7 +129,11 @@ const withPage = (browser) => async (fn) => {
   }
 }
 
-const parseUrls = (inputString) => inputString.replace(/\t.*/gm, '').split('\n').filter(u => !!u.trim());
+const parseUrls = (inputString) => inputString
+  .replace(/\t.*/gm, '')
+  .split('\n')
+  .filter(u => !!u.trim())
+  .map(url => url.trim());
 
 
 async function extractGames(urlString) {
@@ -146,10 +150,12 @@ async function extractGames(urlString) {
       return bluebird.map(urls, async (url, idx) => {
         return withPage(browser)(async (page) => {
           console.log(`Parsing ${idx + 1}/${amount}... URL:${url}`);
+          const userAgent = new UserAgent();
+          await page.setUserAgent(userAgent.toString());
 
           // browser console log based
           // page.on('console', (e) => parseLogs(e, uniqueGames));
-          // await page.setUserAgent(userAgent.toString());
+
           // await page.goto(url, {
           //     timeout: 30000,
           //     waitUntil: "domcontentloaded",
