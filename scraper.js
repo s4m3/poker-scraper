@@ -154,17 +154,17 @@ async function extractGames(urlString) {
           await page.setUserAgent(userAgent.toString());
 
           // browser console log based
-          // page.on('console', (e) => parseLogs(e, uniqueGames));
+          page.on('console', (e) => parseLogs(e, uniqueGames));
 
-          // await page.goto(url, {
-          //     timeout: 30000,
-          //     waitUntil: "domcontentloaded",
-          //   }
-          // );
-          // await readGameFromPage(page, url);
+          await page.goto(url, {
+              timeout: 60000,
+              waitUntil: "domcontentloaded",
+            }
+          );
+          await readGameFromPage(page, url);
 
           // websocket based
-          await readFromWebsocketTraffic(page, url, uniqueGames);
+          // await readFromWebsocketTraffic(page, url, uniqueGames);
         });
       }, { concurrency: 10 });
     });

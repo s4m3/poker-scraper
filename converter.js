@@ -347,6 +347,10 @@ function getGameText(game) {
     currentTopBet: 0
   }
   const { seats, currency: rawCurrency, key, blinds, rounds, numSeats, rakeTaken, name } = game;
+  if(!rounds  || !seats || !rounds) {
+    console.error('cannot find data for ', name);
+    return ''
+  }
   const currency = parseCurrency(rawCurrency);
   const handTitle = getHandTitle(key, currency, blinds, rounds);
   const tableTitle = getTableTitle(name, numSeats, seats);
