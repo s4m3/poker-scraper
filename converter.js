@@ -113,7 +113,7 @@ function getSummary(seats, rakeTaken, currency, rounds) {
     if (seat.isDealer) {
       return ' (button) ';
     }
-    return ''
+    return ' '
   }
 
   const getShowedLabel = (seat) => {
@@ -122,7 +122,7 @@ function getSummary(seats, rakeTaken, currency, rounds) {
     }
 
     const holeCards = seat.cards.filter(c => c.holeCard).map(getCardString).join(' ');
-    return ` showed [${holeCards}] and `;
+    return `showed [${holeCards}] and `;
   }
 
   const getAction = (seat, currency) => {

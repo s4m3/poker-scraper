@@ -145,11 +145,11 @@ async function extractGames(urlString) {
           const userAgent = new UserAgent();
           await page.setUserAgent(userAgent.toString());
 
-          await page.goto(url, { waitUntil: 'load', timeout: 0 });
+          await page.goto(url, { waitUntil: 'load', timeout: 100000 });
 
           // browser console log based
-          await readGameFromPage(page, url);
-          page.on('console', (e) => parseLogs(e, uniqueGames));
+          // await readGameFromPage(page, url);
+          // page.on('console', (e) => parseLogs(e, uniqueGames));
 
           // websocket based
           await readFromWebsocketTraffic(page, url, uniqueGames);
