@@ -39,23 +39,23 @@ async function readGameFromPage(page, url) {
     //await page.waitForSelector("md-icon-button md-fab md-accent md-button md-dance-theme md-ink-ripple", {visible:
     // true}); await page.$eval("md-icon-button md-fab md-accent md-button md-dance-theme md-ink-ripple", btn =>
     // btn.click());
-    await Promise.all([
-      await page.click("md-icon-button md-fab md-accent md-button md-dance-theme md-ink-ripple")
-    ]);
-    // await page.evaluate(async () => {
-    //   const buttonElements = document.getElementsByClassName(
-    //     "md-icon-button md-fab md-accent md-button md-dance-theme md-ink-ripple");
-    //   const btn = buttonElements[0];
-    //   if (!btn) {
-    //     throw new Error(errorString);
-    //   }
-    //   btn.click();
-    //
-    //   // wait for logs
-    //   await new Promise(function (resolve) {
-    //     setTimeout(resolve, 5500);
-    //   });
-    // });
+    // await Promise.all([
+    //   await page.click("md-icon-button md-fab md-accent md-button md-dance-theme md-ink-ripple")
+    // ]);
+    await page.evaluate(async () => {
+      const buttonElements = document.getElementsByClassName(
+        "md-icon-button md-fab md-accent md-button md-dance-theme md-ink-ripple");
+      const btn = buttonElements[0];
+      if (!btn) {
+        throw new Error(errorString);
+      }
+      btn.click();
+
+      // wait for logs
+      await new Promise(function (resolve) {
+        setTimeout(resolve, 5500);
+      });
+    });
   } catch (e) {
     console.error(e);
   }
@@ -83,18 +83,10 @@ async function readFromWebsocketTraffic(page, url, uniqueGames) {
         }
       }
     }
-    console.log('Go to url', url);
     const cdp = await page.target().createCDPSession();
     await cdp.send('Network.enable');
     await cdp.send('Page.enable');
     cdp.on('Network.webSocketFrameReceived', parseWebsocketFrame);
-
-    await page.goto(url);
-
-
-    // // DEBUGGING
-    // const html = await page.content();
-    // console.log('html', html);
 
   });
 }
@@ -153,18 +145,14 @@ async function extractGames(urlString) {
           const userAgent = new UserAgent();
           await page.setUserAgent(userAgent.toString());
 
+          await page.goto(url, { waitUntil: 'load', timeout: 0 });
+
           // browser console log based
+          await readGameFromPage(page, url);
           page.on('console', (e) => parseLogs(e, uniqueGames));
 
-          await page.goto(url, {
-              timeout: 60000,
-              waitUntil: "domcontentloaded",
-            }
-          );
-          await readGameFromPage(page, url);
-
           // websocket based
-          // await readFromWebsocketTraffic(page, url, uniqueGames);
+          await readFromWebsocketTraffic(page, url, uniqueGames);
         });
       }, { concurrency: 10 });
     });

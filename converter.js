@@ -348,7 +348,7 @@ function getGameText(game) {
   }
   const { seats, currency: rawCurrency, key, blinds, rounds, numSeats, rakeTaken, name } = game;
   if(!rounds  || !seats || !rounds) {
-    console.error('cannot find data for ', name);
+    console.error('cannot find data for ', game);
     return ''
   }
   const currency = parseCurrency(rawCurrency);
@@ -376,14 +376,16 @@ async function convert() {
 }
 
 async function convertGames(games) {
-  // console.log('converting games', games)
   const gameKeys = Object.keys(games);
 
-  const convertedGames = gameKeys.map(key => getGameText(games[key]));
+  try {
+    const convertedGames = gameKeys.map(key => getGameText(games[key]));
 
-  const output = convertedGames.join('\n');
-  // console.log('output', output);
-  return output;
+    return convertedGames.join('\n');
+  } catch (e) {
+    console.error('Error while converting games', e)
+    return "Error while converting games";
+  }
 }
 
 exports.convert = convertGames;

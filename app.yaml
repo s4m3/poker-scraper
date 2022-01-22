@@ -1,8 +1,14 @@
-runtime: nodejs
+runtime: custom
 env: flex
 
-manual_scaling:
-  instances: 1
+instance_class: F4
 
-network:
-  session_affinity: true
+resources:
+  memory_gb: 6.50
+  cpu: 4
+
+#manual_scaling:
+#  instances: 1
+
+#network:
+#  session_affinity: true
